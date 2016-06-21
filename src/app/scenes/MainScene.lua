@@ -57,12 +57,13 @@ function MainScene:initChess()
 			myChessItem:setTouchEnabled(value)
 		end)
 		
-		myChessItem:addNodeEventListener(cc.NODE_TOUCH_EVENT, function (event)			
-			if event.name=="beagn" then
-
+		myChessItem:addNodeEventListener(cc.NODE_TOUCH_EVENT, function (event)		
+			if event.name=="began" then
+				myChessItem:scale(0.95)
 			elseif event.name == "moved" then
 				myChessItem:pos(event.x,event.y)
 	        elseif event.name == "ended" then
+	        	myChessItem:scale(1)
 	        	local targetPosId = self:getPosIdByPosition({x = event.x,y = event.y})
 	        	local targetPostion = self:getPostionByPosId(targetPosId)
 	        	myChessItem:pos(targetPostion.x,targetPostion.y)
