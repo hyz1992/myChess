@@ -63,7 +63,7 @@ function ifCanGo(self,chess,targetPosId)
 end
 
 function getPosCanTouch(self,chess)
-	chess:print()
+	-- chess:print()
 	local retChesses = {}
 	local isMyChess = chess:getIsMyChess()
 	local chessTag = chess:getChessTag()
@@ -92,6 +92,7 @@ function getPosCanTouch(self,chess)
 					retChesses[#retChesses+1] = {pos =tmpPos,eat =eatchess and eatchess:getChessId()} --返回的是可以到达的位置,以及可以吃的棋子chessId
 					dis = dis + 1
 					tmpCoord = {x = curCoord.x + _offset.x*dis,y = curCoord.y+_offset.y*dis}
+					break
 				else
 					break
 				end

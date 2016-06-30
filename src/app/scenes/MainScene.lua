@@ -3,6 +3,12 @@ local MainScene = class("MainScene", function()
     return display.newScene("MainScene")
 end)
 
+local FightType = {
+	online = 1,		--网络版
+	offline_1 = 2, 	--与AI下
+	offline_2 = 3,  --与自己下
+}
+
 function MainScene:ctor()
     cc.ui.UILabel.new({
             UILabelType = 2, text = "Hello, World", size = 64})
@@ -23,6 +29,8 @@ function MainScene:ctor()
     self.manger = Manager.new(self.mChess,self.oChess)
     self.manger:setChess(self.mChess,self.oChess)
 
+    self.fightType = FightType.offline_1
+
     self:initChess()
     self.isMyTurn = false
     for i=1,90 do
@@ -33,6 +41,14 @@ function MainScene:ctor()
     end
     self.tipNode = display.newNode()
     	:addTo(self)
+    self:setTouchEnabled(true)
+    self:addNodeEventListener(cc.NODE_TOUCH_EVENT, function (event)
+    	if event.name=="began" then
+    		local targetPosId = self:getPosIdByPosition({x = event.x,y = event.y})
+    		print(targetPosId)
+    		self:sendMoveChess(targetPosId)
+    	end
+	end)
 end
 
 function MainScene:initChess()
@@ -52,6 +68,7 @@ function MainScene:initChess()
 		UIEx.bind(myChessItem,mychess,"id",function (value)
 			local posId = posArr[i]
 			mychess:setPosId(posId)
+			mychess:setNode(myChessItem)
 			mychess:setChessId(100+posId)
 			mychess:setColor(ChessColor.RED)
 			mychess:setChessTag(tagArr[i])
@@ -71,6 +88,7 @@ function MainScene:initChess()
 		
 		myChessItem:addNodeEventListener(cc.NODE_TOUCH_EVENT, function (event)		
 			if event.name=="began" then
+				self.selectChess = mychess
 				myChessItem:scale(0.97)
 				self.manger:setChess(self.mChess,self.oChess)
 				local poses = self.manger:getPosCanTouch(mychess)
@@ -106,6 +124,7 @@ function MainScene:initChess()
 		UIEx.bind(otChessItem,otchess,"id",function (value)
 			local posId = posArr[i]
 			otchess:setPosId(posId)
+			otchess:setNode(otChessItem)
 			otchess:setChessId(200+posId)
 			otchess:setColor(ChessColor.BLACK)
 			otchess:setChessTag(tagArr[i])
@@ -195,6 +214,60 @@ function MainScene:showChessTips(poses)
 			:addTo(self.tipNode)
 			:pos(pos.x,pos.y)
 	end
+end
+--发送走棋
+function MainScene:sendMoveChess(targetPosId)
+	if self.selectChess==nil then
+		return
+	end
+
+	if self.manger:ifCanGo(self.selectChess,targetPosId) then
+		local pos = self:getPostionByPosId(targetPosId)
+		local node = self.selectChess:getNode()
+		node:runAction(cc.MoveTo:create(0.2,cc.p(pos.x,pos.y)))
+	else
+		
+	end
+end
+--走棋
+function MainScene:onChessMove( ... )
+	self.selectChess = nil
+end
+
+--改变棋手
+function MainScene:sendNextMove()
+	-- body
+end
+--轮到谁下
+function MainScene:onNextMove(data)
+	if self.isMyTurn then
+		for i=1,16 do
+			self.mChess[i]:setMoveable(true)
+			self.oChess[i]:setMoveable(false)
+		end
+	else
+		for i=1,16 do
+			self.mChess[i]:setMoveable(false)
+			self.oChess[i]:setMoveable(true)
+		end
+	end
+	
+end
+--游戏开始
+function MainScene:sendGameStart()
+	-- body
+end
+
+function MainScene:onGameStart(data)
+	-- body
+end
+--游戏结束
+function MainScene:sendGameEnd()
+	-- body
+end
+
+function MainScene:onGameEnd(data)
+	-- body
 end
 
 function MainScene:onEnter()

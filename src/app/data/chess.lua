@@ -25,6 +25,7 @@ function Chess:ctor( ... )
 	addProperty(Chess,"color",0)
 	addProperty(Chess,"isDead",0)
 	addProperty(Chess,"moveable",0)
+	addProperty(Chess,"node",nil)
 end
 
 function Chess:getIsMyChess()
