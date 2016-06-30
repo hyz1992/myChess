@@ -43,7 +43,7 @@ function MainScene:initChess()
 		self.oChess[i] = setProxy(Chess.new())
 	end
 	local posArr = {1,2,3,4,5,6,7,8,9,20,26,28,30,32,34,36}
-	local tagArr = {ChessTag.JU,ChessTag.MA,ChessTag.XAING,ChessTag.SHI,ChessTag.JIANG,ChessTag.SHI,ChessTag.XAING,ChessTag.MA,ChessTag.JU,
+	local tagArr = {ChessTag.JU,ChessTag.MA,ChessTag.XIANG,ChessTag.SHI,ChessTag.JIANG,ChessTag.SHI,ChessTag.XIANG,ChessTag.MA,ChessTag.JU,
 						ChessTag.PAO,ChessTag.PAO,ChessTag.BING,ChessTag.BING,ChessTag.BING,ChessTag.BING,ChessTag.BING}
 	for i=1,16 do
 		local mychess = self.mChess[i]
@@ -84,6 +84,7 @@ function MainScene:initChess()
 	        		mychess:setPosId(targetPosId)
 	        		local targetPostion = self:getPostionByPosId(targetPosId)
 	        		myChessItem:pos(targetPostion.x,targetPostion.y)
+	        		
 	        	else
 	        		local pos = self:getPostionByPosId(mychess:getPosId())
 	        		myChessItem:pos(pos.x,pos.y)
@@ -146,7 +147,7 @@ function MainScene:getImgPath(_chessTag,chessColor)
 	local tagStr = "--"
 	if _chessTag == ChessTag.JU then 			tagStr = "R"
 	elseif _chessTag == ChessTag.MA then 		tagStr = "N"
-	elseif _chessTag == ChessTag.XAING then 	tagStr = "B"
+	elseif _chessTag == ChessTag.XIANG then 	tagStr = "B"
 	elseif _chessTag == ChessTag.SHI then 		tagStr = "A"
 	elseif _chessTag == ChessTag.JIANG then 	tagStr = "K"
 	elseif _chessTag == ChessTag.PAO then 		tagStr = "C"

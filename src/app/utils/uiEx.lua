@@ -32,6 +32,9 @@ function setProxy(t)
             end
         end
     })
+    proxy.getTable = function ( ... )
+    	return t
+    end
     return proxy;
 end
 

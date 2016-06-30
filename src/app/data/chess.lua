@@ -31,12 +31,17 @@ function Chess:getIsMyChess()
 	return self:getColor()==g_myColor
 end
 
--- function init(_posId,_chessId,_chessTag,_color,_isDead)
--- 	_posId = posId
--- 	_chessId = chessId
--- 	_chessTag = chessTag
--- 	_color = color
--- 	_isDead = isDead
--- end
+function Chess:print()
+	if self.isDead~=0 then
+		return
+	end
+	print("\n 	--->Chess:")
+	print("id       :  "..self.id)
+	print("chessId  :  "..self.chessId)
+	print("chessTag :  "..self.chessTag)
+	print("posId    :  "..self.posId)
+	print("color    :  "..self.color)
+	print("moveable :  "..(self.moveable and "true" or "false"))
+end
 
 return Chess

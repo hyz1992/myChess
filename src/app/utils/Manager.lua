@@ -63,6 +63,7 @@ function ifCanGo(self,chess,targetPosId)
 end
 
 function getPosCanTouch(self,chess)
+	chess:print()
 	local retChesses = {}
 	local isMyChess = chess:getIsMyChess()
 	local chessTag = chess:getChessTag()
@@ -70,6 +71,7 @@ function getPosCanTouch(self,chess)
 	local curCoord = self:getCoordinateByPosId(curPosId)
 	local offset = {}
 	-- print("curPosId:",curPosId)
+	-- print(chessTag==ChessTag.XIANG,chessTag,ChessTag.XIANG)
 	if chessTag==ChessTag.JU then
 		offset = {
 			{x = 0, y =1},{x = 1, y =0},{x = 0, y =-1},{x = -1, y =0},
@@ -79,6 +81,7 @@ function getPosCanTouch(self,chess)
 			local _offset = offset[i]
 			local tmpCoord = {x = curCoord.x + _offset.x*dis,y = curCoord.y+_offset.y*dis}
 			while tmpCoord.x>=1 and tmpCoord.x<=9 and tmpCoord.y>=1 and tmpCoord.y<=10  do 	--边界以内才有效
+				print(tmpCoord.x,tmpCoord.y)
 				local tmpPos = self:getPosIdByCoordinate(tmpCoord)
 				local color,eatchess = self:checkHasChess(tmpPos)
 				if color==ChessColor.NONE then 	--目标位置没有棋
@@ -89,6 +92,8 @@ function getPosCanTouch(self,chess)
 					retChesses[#retChesses+1] = {pos =tmpPos,eat =eatchess and eatchess:getChessId()} --返回的是可以到达的位置,以及可以吃的棋子chessId
 					dis = dis + 1
 					tmpCoord = {x = curCoord.x + _offset.x*dis,y = curCoord.y+_offset.y*dis}
+				else
+					break
 				end
 			end
 		end
@@ -107,7 +112,7 @@ function getPosCanTouch(self,chess)
 				local legPos = self:getPosIdByCoordinate(legCoord)
 				local tmpPos = self:getPosIdByCoordinate(tmpCoord)
 				local color,eatchess = self:checkHasChess(legPos)
-				if color~=ChessColor.NONE then 		--马脚有棋就不能走
+				if color==ChessColor.NONE then 		--马脚有棋就不能走
 					color,eatchess = self:checkHasChess(tmpPos)
 					if color==ChessColor.NONE then
 						retChesses[#retChesses+1] = {pos =tmpPos}
