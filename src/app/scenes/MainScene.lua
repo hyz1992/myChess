@@ -1,4 +1,6 @@
 local Manager = require("app.utils.Manager")
+local BoardState = require("app.utils.BoardState")
+local Robot = require("app.utils.Robot").new()
 local MainScene = class("MainScene", function()
     return display.newScene("MainScene")
 end)
@@ -8,6 +10,8 @@ local FightType = {
 	offline_1 = 2, 	--与AI下
 	offline_2 = 3,  --与自己下
 }
+
+local chessId_offset = 128 	--我的棋chessId起始偏移量
 
 function MainScene:ctor()
     cc.ui.UILabel.new({
@@ -27,12 +31,12 @@ function MainScene:ctor()
     self.boardBg:scale(display.width/self.boardBg:getContentSize().width)
 
     self.manger = Manager.new(self.mChess,self.oChess)
-    self.manger:setChess(self.mChess,self.oChess)
+    --self.manger:setChess(self.mChess,self.oChess)
 
     self.fightType = FightType.offline_1
 
     self:initChess()
-    self.isMyTurn = false
+    
     for i=1,90 do
     	local pos = self:getPostionByPosId(i)
     	display.newTTFLabel({text=i.."",color = cc.c3b(0,255,255)})
@@ -40,15 +44,17 @@ function MainScene:ctor()
     		:pos(pos.x,pos.y)
     end
     self.tipNode = display.newNode()
-    	:addTo(self)
+    	:addTo(self,1)
     self:setTouchEnabled(true)
     self:addNodeEventListener(cc.NODE_TOUCH_EVENT, function (event)
     	if event.name=="began" then
     		local targetPosId = self:getPosIdByPosition({x = event.x,y = event.y})
-    		print(targetPosId)
     		self:sendMoveChess(targetPosId)
     	end
 	end)
+
+    self.isMyTurn = false
+	self:sendNextMove()
 end
 
 function MainScene:initChess()
@@ -69,7 +75,7 @@ function MainScene:initChess()
 			local posId = posArr[i]
 			mychess:setPosId(posId)
 			mychess:setNode(myChessItem)
-			mychess:setChessId(100+posId)
+			mychess:setChessId(chessId_offset+i)
 			mychess:setColor(ChessColor.RED)
 			mychess:setChessTag(tagArr[i])
 			myChessItem:pos(self:getPostionByPosId(posId).x,self:getPostionByPosId(posId).y)
@@ -85,25 +91,32 @@ function MainScene:initChess()
 		UIEx.bind(myChessItem,mychess,"moveable",function (value)
 			myChessItem:setTouchEnabled(value)
 		end)
-		
+		UIEx.bind(myChessItem,mychess,"isDead",function (value)
+			myChessItem:setVisible(value==0)
+		end)
 		myChessItem:addNodeEventListener(cc.NODE_TOUCH_EVENT, function (event)		
 			if event.name=="began" then
 				self.selectChess = mychess
 				myChessItem:scale(0.97)
 				self.manger:setChess(self.mChess,self.oChess)
 				local poses = self.manger:getPosCanTouch(mychess)
+				self:showSelectedTip(mychess:getPosId())
 				self:showChessTips(poses)
+				myChessItem:setLocalZOrder(10)
 			elseif event.name == "moved" then
 				myChessItem:pos(event.x,event.y)
 	        elseif event.name == "ended" then
 	        	myChessItem:scale(1)
+	        	
 	        	local targetPosId = self:getPosIdByPosition({x = event.x,y = event.y})
 	        	if self.manger:ifCanGo(mychess,targetPosId) then
-	        		mychess:setPosId(targetPosId)
 	        		local targetPostion = self:getPostionByPosId(targetPosId)
 	        		myChessItem:pos(targetPostion.x,targetPostion.y)
-	        		
+	        		self:sendMoveChess(targetPosId)
 	        	else
+	        		if targetPosId~=mychess:getPosId() then
+	        			self.selectChess = nil
+	        		end
 	        		local pos = self:getPostionByPosId(mychess:getPosId())
 	        		myChessItem:pos(pos.x,pos.y)
 	        		return
@@ -113,7 +126,6 @@ function MainScene:initChess()
 			return true
 		end)
 		mychess:setId(i)
-		mychess:setMoveable(true)
 	end
 
 	posArr = {82,83,84,85,86,87,88,89,90,65,71,55,57,59,61,63}
@@ -125,7 +137,7 @@ function MainScene:initChess()
 			local posId = posArr[i]
 			otchess:setPosId(posId)
 			otchess:setNode(otChessItem)
-			otchess:setChessId(200+posId)
+			otchess:setChessId(chessId_offset*2+i)
 			otchess:setColor(ChessColor.BLACK)
 			otchess:setChessTag(tagArr[i])
 			otChessItem:pos(self:getPostionByPosId(posId).x,self:getPostionByPosId(posId).y)
@@ -140,26 +152,41 @@ function MainScene:initChess()
 		UIEx.bind(otChessItem,otchess,"moveable",function (value)
 			otChessItem:setTouchEnabled(value)
 		end)
+		UIEx.bind(otChessItem,otchess,"isDead",function (value)
+			otChessItem:setVisible(value==0)
+		end)
 		otChessItem:addNodeEventListener(cc.NODE_TOUCH_EVENT, function (event)			
 			if event.name=="began" then
+				self.selectChess = otchess
 				otChessItem:scale(0.97)
 				local poses = self.manger:getPosCanTouch(otchess)
+				self:showSelectedTip(otchess:getPosId())
 				self:showChessTips(poses)
+				otChessItem:setLocalZOrder(10)
+				
 			elseif event.name == "moved" then
 				otChessItem:pos(event.x,event.y)
 	        elseif event.name == "ended" then
 	        	otChessItem:scale(1)
 	        	local targetPosId = self:getPosIdByPosition({x = event.x,y = event.y})
-	        	local targetPostion = self:getPostionByPosId(targetPosId)
-	        	otChessItem:pos(targetPostion.x,targetPostion.y)
+	        	if self.manger:ifCanGo(otchess,targetPosId) then
+	        		local targetPostion = self:getPostionByPosId(targetPosId)
+	        		otChessItem:pos(targetPostion.x,targetPostion.y)
+	        		self:sendMoveChess(targetPosId)
+	        	else
+	        		if targetPosId~=otchess:getPosId() then
+	        			self.selectChess = nil
+	        		end
+	        		local pos = self:getPostionByPosId(otchess:getPosId())
+	        		otChessItem:pos(pos.x,pos.y)
+	        		return
+	        	end
 			end
 			return true
 		end)
 
 		otchess:setId(i)
-		otchess:setMoveable(true)
 	end
-	
 end
 
 function MainScene:getImgPath(_chessTag,chessColor)
@@ -215,31 +242,106 @@ function MainScene:showChessTips(poses)
 			:pos(pos.x,pos.y)
 	end
 end
+
+function MainScene:hideChessTips()
+	self.tipNode:removeAllChildren()
+end
+
+function MainScene:showMovedTip(target)
+	self:hideMovedTip()
+	if self.movedTip == nil then
+		self.movedTip = display.newSprite("chess_moved.png")
+			:addTo(self,1)
+	end
+	local pos = self:getPostionByPosId(target)
+	self.movedTip:pos(pos.x,pos.y)
+	self.movedTip:setVisible(true)
+end
+
+function MainScene:hideMovedTip()
+	if self.movedTip then
+		self.movedTip:setVisible(false)
+	end
+end
+
+function MainScene:showSelectedTip(target)
+	self:hideSelectedTip()
+	if self.selectedTip == nil then
+		self.selectedTip = display.newSprite("selectBg.png")
+			:addTo(self,2)
+	end
+	local pos = self:getPostionByPosId(target)
+	self.selectedTip:pos(pos.x,pos.y)
+	self.selectedTip:setVisible(true)
+end
+
+function MainScene:hideSelectedTip()
+	if self.selectedTip then
+		self.selectedTip:setVisible(false)
+	end
+end
+
 --发送走棋
 function MainScene:sendMoveChess(targetPosId)
 	if self.selectChess==nil then
 		return
 	end
-
-	if self.manger:ifCanGo(self.selectChess,targetPosId) then
-		local pos = self:getPostionByPosId(targetPosId)
-		local node = self.selectChess:getNode()
-		node:runAction(cc.MoveTo:create(0.2,cc.p(pos.x,pos.y)))
-	else
+	local canGo,eat = self.manger:ifCanGo(self.selectChess,targetPosId)
+	if canGo then
+		local data = {chessId = self.selectChess:getChessId(),dstPos = targetPosId,eatChessId = eat}
+		self:onChessMove(data)
 		
+	else
+		self.selectChess = nil
 	end
 end
---走棋
-function MainScene:onChessMove( ... )
+
+function MainScene:getChessByChessId(chessId)
+	if math.floor(chessId/chessId_offset)==1 then 		--我的棋子
+		return self.mChess[chessId%chessId_offset]
+	elseif math.floor(chessId/chessId_offset)==2 then 	--对方的棋子
+		return self.oChess[chessId%chessId_offset]
+	else
+		error("error chessId:",chessId)
+	end
+end
+
+--走棋,data{dstPos,chessId,eatChessId}
+function MainScene:onChessMove( data )
 	self.selectChess = nil
+	self:hideSelectedTip()
+	self:hideChessTips()
+	local chess = self:getChessByChessId(data.chessId)
+	chess:setPosId(data.dstPos)
+	local pos = self:getPostionByPosId(data.dstPos)
+	local node = chess:getNode()
+	local delay = 0.2
+	if pos.x==node:getPositionX() and pos.y==node:getPositionY() then
+		delay=0
+	end
+	local seq = transition.sequence({
+        cc.MoveTo:create(0.2,cc.p(pos.x,pos.y)),
+        cc.CallFunc:create(function (  )
+        	self:showMovedTip(data.dstPos)
+        	node:setLocalZOrder(0)
+        	print("data.eatChessId:",data.eatChessId)
+        	if data.eatChessId then
+        		self:getChessByChessId(data.eatChessId):setIsDead(true)
+        	end
+        	self:sendNextMove()
+        end),
+    })
+	node:runAction(seq)
 end
 
 --改变棋手
 function MainScene:sendNextMove()
-	-- body
+	self.isMyTurn = not self.isMyTurn
+	self:onNextMove()
 end
 --轮到谁下
 function MainScene:onNextMove(data)
+	
 	if self.isMyTurn then
 		for i=1,16 do
 			self.mChess[i]:setMoveable(true)
@@ -251,7 +353,15 @@ function MainScene:onNextMove(data)
 			self.oChess[i]:setMoveable(true)
 		end
 	end
-	
+
+	if self.fightType==FightType.offline_1 and not self.isMyTurn then 	--在与电脑下的状态下，轮到电脑下
+		local _state = BoardState.new(self.mChess,self.oChess,self.isMyTurn)
+		local movedata = Robot.getNextMoveData(_state)
+		-- dump(movedata)
+		self:onChessMove(movedata)
+	else
+	end
+
 end
 --游戏开始
 function MainScene:sendGameStart()

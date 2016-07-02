@@ -32,6 +32,15 @@ function Chess:getIsMyChess()
 	return self:getColor()==g_myColor
 end
 
+function Chess:clone(chess)
+	self:setId(chess:getId())
+	self:setChessId(chess:getChessId())
+	self:setPosId(chess:getPosId())
+	self:setChessTag(chess:getChessTag())
+	self:setIsDead(chess:getIsDead())
+	self:setColor(chess:getColor())
+end
+
 function Chess:print()
 	if self.isDead~=0 then
 		return

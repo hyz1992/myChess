@@ -1,5 +1,5 @@
 require("app.data.chess")
-
+local _G = _G
 local math 			= math
 local ChessColor 	= ChessColor
 local ChessTag 		= ChessTag
@@ -42,6 +42,11 @@ end
 --返回值，1：目标位置有红方的棋，2：目标位置有白方的棋，0：目标位置空白
 function checkHasChess(self,targetPos)
 	for i=1,16 do
+		if _G["sdf"] then
+			print("i:",i)
+			self.mChess[i]:print()
+			_G["sdf"] = false
+		end
 		if self.mChess[i]:getIsDead()==0 and self.mChess[i]:getPosId()==targetPos then
 			return ChessColor.RED,self.mChess[i]
 		end
@@ -53,13 +58,20 @@ function checkHasChess(self,targetPos)
 end
 
 function ifCanGo(self,chess,targetPosId)
+	local bol = false
+	local eatChessId = nil
 	local poses = self:getPosCanTouch(chess)
 	for i=1,#poses do
 		if poses[i].pos==targetPosId then
-			return true
+			bol = true
+			local color,eat = self:checkHasChess(targetPosId)
+			if color==ChessColor.RED+ChessColor.BLACK - chess:getColor() then
+				eatChessId = eat:getChessId()
+			end
+			break
 		end
 	end
-	return false
+	return bol,eatChessId
 end
 
 function getPosCanTouch(self,chess)
@@ -81,7 +93,7 @@ function getPosCanTouch(self,chess)
 			local _offset = offset[i]
 			local tmpCoord = {x = curCoord.x + _offset.x*dis,y = curCoord.y+_offset.y*dis}
 			while tmpCoord.x>=1 and tmpCoord.x<=9 and tmpCoord.y>=1 and tmpCoord.y<=10  do 	--边界以内才有效
-				print(tmpCoord.x,tmpCoord.y)
+				-- print(tmpCoord.x,tmpCoord.y)
 				local tmpPos = self:getPosIdByCoordinate(tmpCoord)
 				local color,eatchess = self:checkHasChess(tmpPos)
 				if color==ChessColor.NONE then 	--目标位置没有棋
