@@ -16,6 +16,9 @@ ChessColor = {
 }
 
 g_myColor = ChessColor.RED
+function setMyColor(color)
+	g_myColor = color
+end
 
 function Chess:ctor( ... )
 	addProperty(Chess,"id",0)

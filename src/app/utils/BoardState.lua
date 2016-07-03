@@ -5,6 +5,7 @@ local ChessTag 		= ChessTag
 local print 		= print
 local dump 			= dump
 local pairs			= pairs
+local table 		= table
 local Manager = require("app.utils.Manager")
 local setProxy = setProxy
 local Chess = Chess
@@ -102,4 +103,75 @@ function nextState(self,chess)
 	end
 
 	return ret
+end
+--[[
+	棋子的价值
+	棋子位置的价值
+	棋子的灵活性
+	棋子的威胁与保护
+]]
+function getEvaluation(self)
+	--if 1 then return math.random(1,10) end	
+	local value = 0
+	local chessPower 	= {6,4,3,2,100,5,1}
+	local posPower 		= {1,2,3,4,5,6,7,8,9,10}
+
+	local chess,posId,coord,poses
+	for i=1,16 do
+		chess = self.mChess[i]
+		posId = chess:getPosId()
+		coord = self.manger:getCoordinateByPosId(posId)
+		poses = self.manger:getPosCanTouch(chess)
+		if 0==chess:getIsDead() then
+			value = value + chessPower[chess:getChessTag()]*10
+			value = value + posPower[coord.y]*2
+			value = value + #poses*2
+			for k,v in pairs(poses) do
+				if v.eat then
+					local eatChess = self:getChessByChessId(v.eat)
+					value = value + chessPower[eatChess:getChessTag()]
+				end
+			end
+		end
+
+		chess = self.oChess[i]
+		posId = chess:getPosId()
+		coord = self.manger:getCoordinateByPosId(posId)
+		poses = self.manger:getPosCanTouch(chess)
+		if 0==chess:getIsDead() then
+			value = value - chessPower[chess:getChessTag()]*10
+			value = value - posPower[11-coord.y]*2
+			value = value - #poses*2
+			for k,v in pairs(poses) do
+				if v.eat then
+					local eatChess = self:getChessByChessId(v.eat)
+					value = value + chessPower[eatChess:getChessTag()]
+				end
+			end
+		end
+	end
+
+
+	return value
+end
+
+function getKey(self)
+	local key = ""
+	local tab = {}
+	for i=1,16 do
+		if 0==self.mChess[i]:getIsDead() then
+			tab[#tab+1] = self.mChess[i]:getChessId()..","..self.mChess[i]:getPosId()..";"
+		end
+	end
+	for i=1,16 do
+		if 0==self.oChess[i]:getIsDead() then
+			tab[#tab+1] = self.oChess[i]:getChessId()..","..self.oChess[i]:getPosId()..";"
+		end
+	end
+	local key = table.concat(tab)
+	return key
+end
+
+function equal(self,state)
+	return self:getKey()==state:getKey()
 end

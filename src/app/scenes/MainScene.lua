@@ -1,6 +1,7 @@
 local Manager = require("app.utils.Manager")
 local BoardState = require("app.utils.BoardState")
 local Robot = require("app.utils.Robot").new()
+local scheduler = require("framework.scheduler")
 local MainScene = class("MainScene", function()
     return display.newScene("MainScene")
 end)
@@ -31,7 +32,6 @@ function MainScene:ctor()
     self.boardBg:scale(display.width/self.boardBg:getContentSize().width)
 
     self.manger = Manager.new(self.mChess,self.oChess)
-    --self.manger:setChess(self.mChess,self.oChess)
 
     self.fightType = FightType.offline_1
 
@@ -40,11 +40,11 @@ function MainScene:ctor()
     for i=1,90 do
     	local pos = self:getPostionByPosId(i)
     	display.newTTFLabel({text=i.."",color = cc.c3b(0,255,255)})
-    		:addTo(self)
+    		-- :addTo(self)
     		:pos(pos.x,pos.y)
     end
     self.tipNode = display.newNode()
-    	:addTo(self,1)
+    	:addTo(self,11)
     self:setTouchEnabled(true)
     self:addNodeEventListener(cc.NODE_TOUCH_EVENT, function (event)
     	if event.name=="began" then
@@ -52,6 +52,11 @@ function MainScene:ctor()
     		self:sendMoveChess(targetPosId)
     	end
 	end)
+
+	self.tipText = display.newTTFLabel{text = "hello world",size=30}
+			:addTo(self,11)
+			:pos(display.cx-100, display.height-100)
+			:align(display.LEFT_CENTER)
 
     self.isMyTurn = false
 	self:sendNextMove()
@@ -76,7 +81,7 @@ function MainScene:initChess()
 			mychess:setPosId(posId)
 			mychess:setNode(myChessItem)
 			mychess:setChessId(chessId_offset+i)
-			mychess:setColor(ChessColor.RED)
+			mychess:setColor(g_myColor)
 			mychess:setChessTag(tagArr[i])
 			myChessItem:pos(self:getPostionByPosId(posId).x,self:getPostionByPosId(posId).y)
 			-- display.newTTFLabel({size = 20,color = cc.c3b(0,255,255),text = "p:"..posId})
@@ -138,7 +143,7 @@ function MainScene:initChess()
 			otchess:setPosId(posId)
 			otchess:setNode(otChessItem)
 			otchess:setChessId(chessId_offset*2+i)
-			otchess:setColor(ChessColor.BLACK)
+			otchess:setColor(ChessColor.BLACK+ChessColor.RED - g_myColor)
 			otchess:setChessTag(tagArr[i])
 			otChessItem:pos(self:getPostionByPosId(posId).x,self:getPostionByPosId(posId).y)
 			-- display.newTTFLabel({size = 20,color = cc.c3b(255,255,0),text = "p:"..posId})
@@ -237,9 +242,15 @@ function MainScene:showChessTips(poses)
 	self.tipNode:removeAllChildren()
 	for i=1,#poses do
 		local pos = self:getPostionByPosId(poses[i].pos)
-		display.newSprite("tip.png")
+		local tip = display.newSprite("tip.png")
 			:addTo(self.tipNode)
 			:pos(pos.x,pos.y)
+			:opacity(100)
+		if g_myColor == ChessColor.RED and not self.isMyTurn then
+			tip:setColor(cc.c3b(0,0,0))
+		elseif g_myColor == ChessColor.BLACK and self.isMyTurn then
+			tip:setColor(cc.c3b(0,0,0))
+		end
 	end
 end
 
@@ -324,7 +335,6 @@ function MainScene:onChessMove( data )
         cc.CallFunc:create(function (  )
         	self:showMovedTip(data.dstPos)
         	node:setLocalZOrder(0)
-        	print("data.eatChessId:",data.eatChessId)
         	if data.eatChessId then
         		self:getChessByChessId(data.eatChessId):setIsDead(true)
         	end
@@ -341,25 +351,60 @@ function MainScene:sendNextMove()
 end
 --轮到谁下
 function MainScene:onNextMove(data)
-	
-	if self.isMyTurn then
-		for i=1,16 do
-			self.mChess[i]:setMoveable(true)
-			self.oChess[i]:setMoveable(false)
-		end
-	else
-		for i=1,16 do
-			self.mChess[i]:setMoveable(false)
-			self.oChess[i]:setMoveable(true)
-		end
+	for i=1,16 do
+		self.mChess[i]:setMoveable(false)
+		self.oChess[i]:setMoveable(false)
 	end
 
-	if self.fightType==FightType.offline_1 and not self.isMyTurn then 	--在与电脑下的状态下，轮到电脑下
-		local _state = BoardState.new(self.mChess,self.oChess,self.isMyTurn)
-		local movedata = Robot.getNextMoveData(_state)
-		-- dump(movedata)
-		self:onChessMove(movedata)
-	else
+	if self.fightType==FightType.offline_1 then 	--在与电脑下的状态下，轮到电脑下
+		if self.isMyTurn then
+			for i=1,16 do
+				self.mChess[i]:setMoveable(true)
+			end
+		else
+			local count = 0
+			local func_1 = function ()
+				count = count +1 if count==4 then count=0 end
+				local str = "正在想"..string.rep(".",count)
+				self.tipText:setString(str)
+			end
+			self.tipText:runAction(cc.RepeatForever:create(transition.sequence{
+				cc.DelayTime:create(0.3),
+				cc.CallFunc:create(func_1)
+				}))
+			local co = coroutine.create(function ()
+			    local _state = BoardState.new(self.mChess,self.oChess,self.isMyTurn)
+			    local oldTime = os.clock()
+				local movedata = Robot:getNextMoveData(_state)
+				local curTime = os.clock()
+				-- dump(movedata)
+				self:onChessMove(movedata)
+				self.tipText:stopAllActions()
+				self.tipText:setString(string.format("%d，时间=%f",diedai_count or 0,curTime-oldTime))
+			end)
+			local function frameEvent( ... )
+				local bol = coroutine.resume(co)
+				-- print("bol",bol,coroutine.status(co))
+				if not bol then
+					scheduler.unscheduleGlobal(self.handle)
+				end
+			end
+			self.handle = scheduler.scheduleGlobal(frameEvent, 1/60)
+		end
+	elseif self.fightType==FightType.offline_2 then
+		if self.isMyTurn then
+			for i=1,16 do
+				self.mChess[i]:setMoveable(true)
+			end
+		else
+			for i=1,16 do
+				self.oChess[i]:setMoveable(true)
+			end
+		end
+	elseif self.isMyTurn then
+		for i=1,16 do
+			self.mChess[i]:setMoveable(true)
+		end
 	end
 
 end
@@ -380,10 +425,28 @@ function MainScene:onGameEnd(data)
 	-- body
 end
 
+function MainScene:onKeyPressed(keyCode,event)
+	print(keyCode)
+    if keyCode==cc.KeyCode.KEY_BACK or keyCode==cc.KeyCode.KEY_A then
+        device.showAlert("提示", "您确定退出游戏吗?", {"是", "否"}, function (event)  
+            if event.buttonIndex == 1 then  
+                cc.Director:getInstance():endToLua()
+            else  
+                device.cancelAlert()   
+            end  
+        end)
+    end
+end
+
 function MainScene:onEnter()
+	self.listener = cc.EventListenerKeyboard:create()
+    self.listener:registerScriptHandler(handler(self,self.onKeyPressed), cc.Handler.EVENT_KEYBOARD_PRESSED )
+    local eventDispatcher = self:getEventDispatcher()
+    eventDispatcher:addEventListenerWithSceneGraphPriority(self.listener, self)
 end
 
 function MainScene:onExit()
+	self:getEventDispatcher():removeEventListener(self.listener)
 end
 
 return MainScene

@@ -1,0 +1,9 @@
+# 注释
+
+*.sdf
+debug.log
+1ddd.lua
+1kkk.lua
+frameworks/runtime-src/proj.android_no_anysdk/assets
+frameworks/runtime-src/proj.android_no_anysdk/bin
+frameworks/runtime-src/proj.android_no_anysdk/obj

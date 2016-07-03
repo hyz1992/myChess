@@ -28,11 +28,19 @@ package org.cocos2dx.lua;
 
 import org.cocos2dx.lib.Cocos2dxActivity;
 import android.os.Bundle;
+import android.util.Log;
 
 public class AppActivity extends Cocos2dxActivity{
-
+	final String TAG = "hyz";
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+	}
+
+	@Override
+	public void onBackPressed() {
+		// TODO Auto-generated method stub
+		Log.e(TAG,"·µ»Ø¼ü");
+		super.onBackPressed();
 	}
 }
